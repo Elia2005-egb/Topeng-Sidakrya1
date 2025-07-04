@@ -255,7 +255,8 @@ const maskerData = [
                 mobileMenu.classList.toggle('hidden');
             });
 
-            const navigateTo = (page) => {
+            // Modified navigateTo function to handle browser history
+            const navigateTo = (page, state = {}, pushState = true) => {
                 content.innerHTML = ''; 
                 window.scrollTo(0, 0);
 
@@ -267,6 +268,10 @@ const maskerData = [
                 });
 
                 mobileMenu.classList.add('hidden');
+
+                if (pushState) {
+                    history.pushState({ page: page, ...state }, '', `#${page}`);
+                }
 
                 switch (page) {
                     case 'beranda':
@@ -284,11 +289,25 @@ const maskerData = [
                     case 'kontak':
                         renderKontak();
                         break;
+                    case 'detail-mask': // Handle detail page navigation
+                        renderDetail(state.id);
+                        break;
                     default:
                         renderBeranda();
                 }
                 lucide.createIcons(); 
             };
+
+            // Event listener for browser's popstate (back/forward button)
+            window.addEventListener('popstate', (event) => {
+                if (event.state && event.state.page) {
+                    navigateTo(event.state.page, event.state, false); // Do not push state again
+                } else {
+                    // If no state, go to default page (e.g., beranda)
+                    navigateTo('beranda', {}, false);
+                }
+            });
+
 
             navLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
@@ -388,7 +407,6 @@ const renderBeranda = () => {
                     <h1 class="text-4xl font-bold text-center mb-2 text-red-700 dark:text-red-500 font-serif">Galeri Topeng</h1>
                     <p class="text-center text-gray-600 dark:text-gray-400 mb-8">Jelajahi keragaman topeng dalam kebudayaan Bali.</p>
                     
-                    <!-- Search and Filter -->
                     <div class="flex flex-col md:flex-row gap-4 mb-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                         <input type="text" id="search-input" placeholder="Cari nama topeng..." class="flex-grow p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
                         <select id="filter-wilayah" class="p-2 border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
@@ -404,7 +422,7 @@ const renderBeranda = () => {
                 document.getElementById('galeri-grid').addEventListener('click', (e) => {
                     const card = e.target.closest('.cursor-pointer');
                     if (card) {
-                        renderDetail(card.dataset.id);
+                        navigateTo('detail-mask', { id: card.dataset.id }); // Use navigateTo for detail
                     }
                 });
 
@@ -479,7 +497,7 @@ const renderBeranda = () => {
                 `;
                 document.querySelector('.nav-link-action').addEventListener('click', e => {
                     e.preventDefault();
-                    navigateTo('galeri');
+                    navigateTo('galeri'); // This still directly navigates to galeri
                 });
                 document.getElementById('detail-image').addEventListener('click', () => {
                     showModal(mask.gambarBesar, mask.nama);
@@ -617,10 +635,8 @@ const renderBeranda = () => {
                                 </div>
                             </div>
                             
-                            <!-- Kuis Interaktif -->
                             <div id="kuis-container" class="mt-12 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                                <!-- Kuis content will be injected here -->
-                            </div>
+                                </div>
                         </div>
                         <div>
                             <form id="contact-form" class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg space-y-4 border border-gray-200 dark:border-gray-700">
@@ -659,7 +675,9 @@ const renderBeranda = () => {
             };
 
             applyTheme();
-            navigateTo('beranda');
+            // Initial load based on URL hash or default to beranda
+            const initialPage = window.location.hash.substring(1) || 'beranda';
+            navigateTo(initialPage, {}, false); // Do not push state on initial load
         });
     </script>
 </body>
